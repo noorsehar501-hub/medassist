@@ -185,7 +185,7 @@
 </div>
 
 <script>
-const API_KEY = ""; // Leave empty — handled by Anthropic proxy
+const API_KEY = "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";
 const drugs = [];
 const chatHistory = [];
 
@@ -201,24 +201,26 @@ function showLoading(container) {
 }
 
 async function callClaude(messages, system) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": API_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
+      "Authorization": `Bearer ${API_KEY}`
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "llama3-8b-8192",
       max_tokens: 1000,
-      system: system,
-      messages: messages
+      messages: [
+        { role: "system", content: system },
+        ...messages
+      ]
     })
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
-  return data.content[0].text;
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error("No response from AI");
+  return text;
 }
 
 async function fetchDrugInfo() {
@@ -326,3 +328,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
