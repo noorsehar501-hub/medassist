@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#0F6E56"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="MedAssist"/>
+<meta name="description" content="AI-powered medication assistant for patients"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.svg"/>
+<title>MedAssist AI</title>
+<style>
+  :root {
+    --green-dark: #0F6E56;
+    --green-mid: #1D9E75;
+    --green-light: #E1F5EE;
+    --green-bg: #F0FAF6;
+    --text: #1A1A1A;
+    --text-muted: #666;
+    --border: #D0EDE4;
+    --bg: #ffffff;
+    --surface: #F7FBF9;
+    --radius: 14px;
+    --radius-sm: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --green-dark: #2DD4A0;
+      --green-mid: #1D9E75;
+      --green-light: #0D3B2E;
+      --green-bg: #0A2E24;
+      --text: #F0F0F0;
+      --text-muted: #9BB8AE;
+      --border: #1A4A38;
+      --bg: #0D1F1A;
+      --surface: #142920;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; }
+
+  /* Header */
+  .app-header { background: var(--green-dark); padding: 52px 20px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  .app-header svg { width: 32px; height: 32px; flex-shrink: 0; }
+  .app-header-text h1 { font-size: 20px; font-weight: 700; color: #fff; }
+  .app-header-text p { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+  /* Tabs */
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 84px; z-index: 99; }
+  .tab { flex: 1; padding: 12px 4px 10px; font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; border: none; background: none; color: var(--text-muted); transition: all 0.2s; border-bottom: 2px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tab svg { width: 20px; height: 20px; }
+  .tab.active { color: var(--green-dark); border-bottom-color: var(--green-dark); }
+
+  /* Panels */
+  .panel { display: none; padding: 16px; flex-direction: column; gap: 12px; flex: 1; }
+  .panel.active { display: flex; }
+
+  /* Inputs */
+  input[type=text], textarea {
+    width: 100%; padding: 13px 16px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 15px; background: var(--bg);
+    color: var(--text); outline: none; transition: border 0.2s;
+    -webkit-appearance: none;
+  }
+  input[type=text]:focus, textarea:focus { border-color: var(--green-mid); }
+  textarea { resize: none; height: 80px; }
+
+  .btn { width: 100%; padding: 14px; background: var(--green-dark); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.1s; }
+  .btn:active { opacity: 0.85; transform: scale(0.98); }
+  .btn-outline { background: transparent; border: 1.5px solid var(--green-dark); color: var(--green-dark); }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card-label { font-size: 11px; font-weight: 600; color: var(--green-dark); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .card-body { font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+
+  /* Drug tags */
+  .drug-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .drug-tag { background: var(--green-light); color: var(--green-dark); border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .drug-tag button { background: none; border: none; color: var(--green-dark); font-size: 16px; cursor: pointer; padding: 0; line-height: 1; }
+
+  /* Chat */
+  .chat-wrap { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
+  .bubble { padding: 11px 14px; border-radius: 18px; font-size: 14px; line-height: 1.6; max-width: 88%; }
+  .bubble.user { background: var(--green-dark); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .bubble.ai { background: var(--surface); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .chat-input-row { display: flex; gap: 8px; align-items: flex-end; }
+  .chat-input-row input { flex: 1; }
+  .send-btn { width: 46px; height: 46px; flex-shrink: 0; border-radius: 50%; background: var(--green-dark); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s; }
+  .send-btn:active { opacity: 0.8; }
+  .send-btn svg { width: 20px; height: 20px; }
+
+  /* Loading */
+  .loading { display: flex; gap: 5px; padding: 6px 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-mid); animation: bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-7px)} }
+
+  /* Disclaimer */
+  .disclaimer { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
+  .disclaimer b { color: var(--text); }
+
+  /* Section label */
+  .section-label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+
+  /* Install banner */
+  #install-banner { background: var(--green-dark); color: #fff; padding: 12px 16px; display: none; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+  #install-banner button { background: #fff; color: var(--green-dark); border: none; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #install-banner .dismiss { background: transparent; color: rgba(255,255,255,0.7); padding: 6px; }
+</style>
+</head>
+<body>
+
+<div id="install-banner">
+  <span>📲 Add MedAssist to your home screen!</span>
+  <div style="display:flex;gap:6px">
+    <button id="install-btn">Install</button>
+    <button class="dismiss" id="dismiss-btn">✕</button>
+  </div>
+</div>
+
+<header class="app-header">
+  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)"/>
+    <path d="M16 7v18M7 16h18" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  </svg>
+  <div class="app-header-text">
+    <h1>MedAssist AI</h1>
+    <p>Your medication companion</p>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" onclick="switchTab('info',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Drug Info
+  </button>
+  <button class="tab" onclick="switchTab('interaction',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Interactions
+  </button>
+  <button class="tab" onclick="switchTab('chat',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    Ask AI
+  </button>
+</nav>
+
+<!-- Drug Info Panel -->
+<div class="panel active" id="panel-info">
+  <p class="section-label">Enter a medication name</p>
+  <input type="text" id="drug-input" placeholder="e.g. Metformin, Paracetamol, Amoxicillin…" autocomplete="off"/>
+  <button class="btn" onclick="fetchDrugInfo()">Look Up Medication</button>
+  <div id="drug-result"></div>
+  <div class="disclaimer"><b>⚕️ Note:</b> For educational use only. Always consult your pharmacist or doctor.</div>
+</div>
+
+<!-- Interaction Panel -->
+<div class="panel" id="panel-interaction">
+  <p class="section-label">Add medications to check</p>
+  <div style="display:flex;gap:8px">
+    <input type="text" id="inter-input" placeholder="Type drug name…" autocomplete="off" onkeydown="if(event.key==='Enter')addDrug()" style="flex:1"/>
+    <button class="btn" onclick="addDrug()" style="width:auto;padding:13px 18px">Add</button>
+  </div>
+  <div class="drug-tags" id="drug-tags"></div>
+  <button class="btn" id="check-btn" style="display:none" onclick="checkInteraction()">Check Interactions</button>
+  <div id="interaction-result"></div>
+  <div class="disclaimer"><b>⚕️ Note:</b> Always confirm interactions with your pharmacist before taking medications together.</div>
+</div>
+
+<!-- Chat Panel -->
+<div class="panel" id="panel-chat">
+  <div class="chat-wrap" id="chat-area">
+    <div class="bubble ai">👋 Hi! I'm MedAssist. Ask me anything about your medications — side effects, timing, food interactions, or general questions.</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-input" placeholder="Ask a medication question…" autocomplete="off" onkeydown="if(event.key==='Enter')sendChat()"/>
+    <button class="send-btn" onclick="sendChat()" aria-label="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+  <div class="disclaimer"><b>⚕️ Note:</b> Not a substitute for professional medical advice.</div>
+</div>
+
+<script>
+const API_KEY = ""; // Leave empty — handled by Anthropic proxy
+const drugs = [];
+const chatHistory = [];
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function showLoading(container) {
+  container.innerHTML = '<div class="card"><div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>';
+}
+
+async function callClaude(messages, system) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": API_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: system,
+      messages: messages
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content[0].text;
+}
+
+async function fetchDrugInfo() {
+  const drug = document.getElementById('drug-input').value.trim();
+  if (!drug) return;
+  const el = document.getElementById('drug-result');
+  showLoading(el);
+  try {
+    const text = await callClaude(
+      [{role:"user", content:`Tell me about the medication: ${drug}`}],
+      `You are MedAssist, a friendly AI medication assistant for patients. Explain medications in simple, non-technical language. Structure your response with these plain-text sections:\n\nWHAT IT IS: (1-2 sentences on what it treats)\nHOW TO TAKE IT: (dosing tips)\nCOMMON SIDE EFFECTS: (list 3-4)\nIMPORTANT WARNINGS: (1-2 key warnings)\nWHEN TO CALL YOUR DOCTOR: (key signs)\n\nBe warm and brief. No markdown.`
+    );
+    el.innerHTML = `<div class="card"><div class="card-label">💊 ${drug}</div><div class="card-body">${text}</div></div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="card"><div class="card-body" style="color:#c0392b">Something went wrong. Please check your API key and try again.</div></div>`;
+  }
+}
+
+function addDrug() {
+  const val = document.getElementById('inter-input').value.trim();
+  if (!val || drugs.map(d=>d.toLowerCase()).includes(val.toLowerCase())) return;
+  drugs.push(val);
+  document.getElementById('inter-input').value = '';
+  renderTags();
+}
+
+function removeDrug(i) {
+  drugs.splice(i, 1);
+  renderTags();
+  document.getElementById('interaction-result').innerHTML = '';
+}
+
+function renderTags() {
+  document.getElementById('drug-tags').innerHTML = drugs.map((d,i) =>
+    `<div class="drug-tag">${d} <button onclick="removeDrug(${i})" aria-label="Remove ${d}">×</button></div>`
+  ).join('');
+  document.getElementById('check-btn').style.display = drugs.length >= 2 ? 'block' : 'none';
+}
+
+async function checkInteraction() {
+  const el = document.getElementById('interaction-result');
+  showLoading(el);
+  try {
+    const text = await callClaude(
+      [{role:"user", content:`Check for drug interactions between: ${drugs.join(', ')}`}],
+      `You are MedAssist. A patient wants to know if their medications interact. Use plain English — no markdown. Structure as:\n\nINTERACTION SUMMARY: (safe / caution needed / significant concern)\nWHAT MAY HAPPEN: (explain in plain English)\nWHAT YOU SHOULD DO: (practical advice)\n\nBe honest but not alarming. Always recommend they confirm with their pharmacist.`
+    );
+    el.innerHTML = `<div class="card"><div class="card-label">⚠️ ${drugs.join(' + ')}</div><div class="card-body">${text}</div></div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="card"><div class="card-body" style="color:#c0392b">Something went wrong. Please try again.</div></div>`;
+  }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const area = document.getElementById('chat-area');
+  area.innerHTML += `<div class="bubble user">${msg}</div>`;
+  const typingId = 'typing-' + Date.now();
+  area.innerHTML += `<div class="bubble ai" id="${typingId}"><div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  area.scrollTop = area.scrollHeight;
+  chatHistory.push({role:"user", content:msg});
+  try {
+    const reply = await callClaude(chatHistory,
+      `You are MedAssist, a warm AI medication assistant for patients. Answer questions about medications, side effects, dosing, and interactions in plain, easy language. Keep responses concise (3-5 sentences). Always remind users to consult their pharmacist or doctor. Never diagnose conditions. No markdown.`
+    );
+    chatHistory.push({role:"assistant", content:reply});
+    document.getElementById(typingId).outerHTML = `<div class="bubble ai">${reply}</div>`;
+    area.scrollTop = area.scrollHeight;
+  } catch(e) {
+    document.getElementById(typingId).outerHTML = `<div class="bubble ai" style="color:#c0392b">Something went wrong. Please try again.</div>`;
+  }
+}
+
+// PWA Install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'flex';
+});
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+  }
+  document.getElementById('install-banner').style.display = 'none';
+});
+document.getElementById('dismiss-btn').addEventListener('click', () => {
+  document.getElementById('install-banner').style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').style.display = 'none';
+});
+</script>
+
+<!-- Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
